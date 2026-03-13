@@ -103,17 +103,21 @@ function stopTimer() {
 }
 
 function updateTimer() {
-  if (!activeStartTime || !Number.isFinite(activeStartTime)) return;
-  const now = Date.now();
-  const diffSec = Math.max(0, Math.floor((now - activeStartTime) / 1000));
+  try {
+    if (!activeStartTime || !Number.isFinite(activeStartTime)) return;
+    const now = Date.now();
+    const diffSec = Math.max(0, Math.floor((now - activeStartTime) / 1000));
 
-  const hours = Math.floor(diffSec / 3600);
-  const minutes = Math.floor((diffSec % 3600) / 60);
-  const seconds = diffSec % 60;
+    const hours = Math.floor(diffSec / 3600);
+    const minutes = Math.floor((diffSec % 3600) / 60);
+    const seconds = diffSec % 60;
 
-  if (timerHours) timerHours.textContent = formatTwoDigits(hours);
-  if (timerMinutes) timerMinutes.textContent = formatTwoDigits(minutes);
-  if (timerSeconds) timerSeconds.textContent = formatTwoDigits(seconds);
+    if (timerHours) timerHours.textContent = formatTwoDigits(hours);
+    if (timerMinutes) timerMinutes.textContent = formatTwoDigits(minutes);
+    if (timerSeconds) timerSeconds.textContent = formatTwoDigits(seconds);
+  } catch (e) {
+    console.error('updateTimer', e);
+  }
 }
 
 function startTimerFrom(startIsoString) {
@@ -175,7 +179,7 @@ async function handleStart() {
     currentUser.startTime = data.startTime || new Date().toISOString();
     saveUserLocal(currentUser);
     setFastingState(true);
-    startTimerFrom(data.startTime || null);
+    startTimerFrom(null);
     await refreshLeaderboard();
   } catch (err) {
     userError.textContent = err.message;
