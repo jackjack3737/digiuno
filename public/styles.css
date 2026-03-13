@@ -286,6 +286,12 @@ body {
   margin-bottom: 0.4rem;
 }
 
+.leaderboard-admin {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
 .last-updated {
   font-size: 0.75rem;
   color: var(--muted);

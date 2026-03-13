@@ -17,6 +17,7 @@ const clearTimeBtn = document.getElementById('clear-time-btn');
 const userError = document.getElementById('user-error');
 const leaderboardBody = document.getElementById('leaderboard-body');
 const lastUpdated = document.getElementById('last-updated');
+const leaderboardAdminEl = document.getElementById('leaderboard-admin');
 
 // Sezione Supabase (storico digiuni di gruppo)
 const myGroupResultsList = document.getElementById('my-group-results');
@@ -36,6 +37,7 @@ let activeStartTime = null;
 let leaderboardRows = [];
 let leaderboardSnapshotTime = null;
 let leaderboardTickInterval = null;
+let isAdmin = false;
 
 function formatTwoDigits(n) {
   return String(n).padStart(2, '0');
@@ -88,9 +90,10 @@ function setFastingState(isFasting) {
     stopBtn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
     timerLabel.textContent = 'Nessun digiuno attivo';
-    timerHours.textContent = '00';
-    timerMinutes.textContent = '00';
-    if (timerSeconds) timerSeconds.textContent = '00';
+    const el = getTimerEls();
+    if (el.hours) el.hours.textContent = '00';
+    if (el.minutes) el.minutes.textContent = '00';
+    if (el.seconds) el.seconds.textContent = '00';
   }
 }
 
@@ -100,6 +103,14 @@ function stopTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
   }
+}
+
+function getTimerEls() {
+  return {
+    hours: document.getElementById('timer-hours'),
+    minutes: document.getElementById('timer-minutes'),
+    seconds: document.getElementById('timer-seconds'),
+  };
 }
 
 function updateTimer() {
@@ -112,9 +123,10 @@ function updateTimer() {
     const minutes = Math.floor((diffSec % 3600) / 60);
     const seconds = diffSec % 60;
 
-    if (timerHours) timerHours.textContent = formatTwoDigits(hours);
-    if (timerMinutes) timerMinutes.textContent = formatTwoDigits(minutes);
-    if (timerSeconds) timerSeconds.textContent = formatTwoDigits(seconds);
+    const el = getTimerEls();
+    if (el.hours) el.hours.textContent = formatTwoDigits(hours);
+    if (el.minutes) el.minutes.textContent = formatTwoDigits(minutes);
+    if (el.seconds) el.seconds.textContent = formatTwoDigits(seconds);
   } catch (e) {
     console.error('updateTimer', e);
   }
@@ -162,6 +174,8 @@ async function handleRegister(e) {
     } else if (user.isFasting) {
       startTimerFrom(null);
     }
+    await checkAdmin(user.username);
+    updateLeaderboardAdminButton();
   } catch (err) {
     userError.textContent = err.message;
   }
@@ -315,7 +329,7 @@ function renderLeaderboard() {
     hoursTd.textContent = formatDurationFromHours(displayHours);
 
     const statusTd = document.createElement('td');
-    statusTd.textContent = row.is_fasting ? 'In digiuno' : '—';
+    statusTd.textContent = row.is_fasting ? 'In digiuno' : 'Fermo';
 
     const actionsTd = document.createElement('td');
     actionsTd.className = 'actions-cell';
@@ -360,6 +374,51 @@ async function refreshLeaderboard() {
     lastUpdated.textContent = 'Aggiornato alle ' + new Date().toLocaleTimeString();
   } catch {
     lastUpdated.textContent = 'Errore di aggiornamento';
+  }
+}
+
+async function checkAdmin(username) {
+  if (!username) {
+    isAdmin = false;
+    return;
+  }
+  try {
+    const data = await api(`/api/admin/check?username=${encodeURIComponent(username)}`);
+    isAdmin = !!data.admin;
+  } catch {
+    isAdmin = false;
+  }
+}
+
+function updateLeaderboardAdminButton() {
+  if (!leaderboardAdminEl) return;
+  leaderboardAdminEl.innerHTML = '';
+  if (isAdmin && currentUser) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn ghost small';
+    btn.textContent = 'Azzera classifica';
+    btn.title = 'Solo admin: azzera i punteggi in classifica (i tempi restano salvati)';
+    btn.addEventListener('click', handleResetLeaderboard);
+    leaderboardAdminEl.appendChild(btn);
+  }
+}
+
+async function handleResetLeaderboard() {
+  if (!currentUser || !isAdmin) return;
+  const ok = window.confirm(
+    'Azzera la classifica per tutti? I tempi restano salvati nel database.'
+  );
+  if (!ok) return;
+  userError.textContent = '';
+  try {
+    await api('/api/admin/reset-leaderboard', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username }),
+    });
+    await refreshLeaderboard();
+  } catch (err) {
+    userError.textContent = err.message || 'Errore azzeramento classifica';
   }
 }
 
@@ -536,7 +595,7 @@ function startPolling() {
   pollingInterval = setInterval(refreshLeaderboard, 15000);
 }
 
-function initFromLocal() {
+async function initFromLocal() {
   const saved = loadUserLocal();
   if (saved) {
     currentUser = saved;
@@ -557,6 +616,8 @@ function initFromLocal() {
         })
         .catch(() => {});
     }
+    await checkAdmin(saved.username);
+    updateLeaderboardAdminButton();
   }
 }
 

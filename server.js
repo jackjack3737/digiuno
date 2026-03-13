@@ -230,6 +230,42 @@ app.get('/api/leaderboard', async (req, res) => {
   res.json(rows || []);
 });
 
+const ADMIN_USERNAME = (process.env.ADMIN_USERNAME || '').trim().toLowerCase();
+
+app.get('/api/admin/check', (req, res) => {
+  const { username } = req.query;
+  if (!username) return res.json({ admin: false });
+  const isAdmin = ADMIN_USERNAME && username.trim().toLowerCase() === ADMIN_USERNAME;
+  res.json({ admin: !!isAdmin });
+});
+
+app.post('/api/admin/reset-leaderboard', async (req, res) => {
+  const { username } = req.body || {};
+  if (!username || typeof username !== 'string') {
+    return res.status(400).json({ error: 'Username mancante.' });
+  }
+  if (!ADMIN_USERNAME) {
+    return res.status(503).json({ error: 'Azzera classifica non configurato (manca ADMIN_USERNAME).' });
+  }
+  if (username.trim().toLowerCase() !== ADMIN_USERNAME) {
+    return res.status(403).json({ error: 'Solo l\'admin può azzerare la classifica.' });
+  }
+  try {
+    const { error } = await supabase
+      .from('leaderboard_reset')
+      .upsert({ id: 1, reset_at: new Date().toISOString() }, { onConflict: 'id' });
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Errore durante l\'azzeramento.' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno.' });
+  }
+});
+
 // Classifica storica dei digiuni di gruppo (Supabase)
 app.get('/api/group-history', async (req, res) => {
   try {

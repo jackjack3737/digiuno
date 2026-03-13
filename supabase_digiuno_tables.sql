@@ -17,7 +17,14 @@ CREATE TABLE IF NOT EXISTS public.digiuno_fast_sessions (
 CREATE INDEX IF NOT EXISTS idx_digiuno_fast_sessions_user_id ON public.digiuno_fast_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_digiuno_fast_sessions_end_time ON public.digiuno_fast_sessions(end_time);
 
--- Vista classifica (equivalente alla query SQLite)
+-- Reset classifica: una sola riga (id=1). reset_at = ultimo azzeramento; NULL = mai azzerata (conta tutto)
+CREATE TABLE IF NOT EXISTS public.leaderboard_reset (
+  id integer PRIMARY KEY DEFAULT 1,
+  reset_at timestamptz
+);
+INSERT INTO public.leaderboard_reset (id, reset_at) VALUES (1, NULL) ON CONFLICT (id) DO NOTHING;
+
+-- Vista classifica: conta solo sessioni con start_time >= reset_at (i tempi restano salvati in digiuno_fast_sessions)
 CREATE OR REPLACE VIEW public.digiuno_leaderboard AS
 SELECT t.id, t.username, t.created_at, t.total_hours, t.is_fasting
 FROM (
@@ -30,6 +37,7 @@ FROM (
         SELECT SUM(EXTRACT(EPOCH FROM (COALESCE(f.end_time, NOW()) - f.start_time)) / 3600.0)
         FROM public.digiuno_fast_sessions f
         WHERE f.user_id = u.id
+          AND f.start_time >= COALESCE((SELECT reset_at FROM public.leaderboard_reset WHERE id = 1 LIMIT 1), '1970-01-01'::timestamptz)
       ), 0) AS NUMERIC), 2
     ) AS total_hours,
     EXISTS(
@@ -49,6 +57,10 @@ CREATE POLICY "Allow all digiuno_users" ON public.digiuno_users FOR ALL USING (t
 
 DROP POLICY IF EXISTS "Allow all digiuno_fast_sessions" ON public.digiuno_fast_sessions;
 CREATE POLICY "Allow all digiuno_fast_sessions" ON public.digiuno_fast_sessions FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.leaderboard_reset ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all leaderboard_reset" ON public.leaderboard_reset;
+CREATE POLICY "Allow all leaderboard_reset" ON public.leaderboard_reset FOR ALL USING (true) WITH CHECK (true);
 
 -- Permesso lettura vista classifica (anon e authenticated)
 GRANT SELECT ON public.digiuno_leaderboard TO anon;
