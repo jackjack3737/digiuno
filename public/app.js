@@ -103,7 +103,7 @@ function stopTimer() {
 }
 
 function updateTimer() {
-  if (!activeStartTime) return;
+  if (!activeStartTime || !Number.isFinite(activeStartTime)) return;
   const now = Date.now();
   const diffSec = Math.max(0, Math.floor((now - activeStartTime) / 1000));
 
@@ -111,20 +111,26 @@ function updateTimer() {
   const minutes = Math.floor((diffSec % 3600) / 60);
   const seconds = diffSec % 60;
 
-  timerHours.textContent = formatTwoDigits(hours);
-  timerMinutes.textContent = formatTwoDigits(minutes);
+  if (timerHours) timerHours.textContent = formatTwoDigits(hours);
+  if (timerMinutes) timerMinutes.textContent = formatTwoDigits(minutes);
   if (timerSeconds) timerSeconds.textContent = formatTwoDigits(seconds);
 }
 
 function startTimerFrom(startIsoString) {
+  const now = Date.now();
   if (!startIsoString) {
-    activeStartTime = Date.now();
+    activeStartTime = now;
   } else {
     const parsed = new Date(startIsoString).getTime();
-    activeStartTime = Number.isFinite(parsed) ? parsed : Date.now();
+    if (Number.isFinite(parsed) && parsed <= now) {
+      activeStartTime = parsed;
+    } else {
+      activeStartTime = now;
+    }
   }
   if (timerInterval) {
     clearInterval(timerInterval);
+    timerInterval = null;
   }
   updateTimer();
   timerInterval = setInterval(updateTimer, 1000);
