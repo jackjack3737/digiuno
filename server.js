@@ -14,6 +14,16 @@ const SUPABASE_ANON_KEY =
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+function toISOString(value) {
+  if (value == null) return null;
+  try {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -57,7 +67,7 @@ app.post('/api/register', async (req, res) => {
     id: user.id,
     username: user.username,
     isFasting: !!active,
-    startTime: active ? active.start_time : null,
+    startTime: active ? toISOString(active.start_time) : null,
   });
 });
 
@@ -97,7 +107,7 @@ app.post('/api/start', async (req, res) => {
   if (error) {
     return res.status(500).json({ error: 'Errore avvio digiuno.' });
   }
-  res.json({ success: true, startTime: started ? started.start_time : null });
+  res.json({ success: true, startTime: toISOString(started?.start_time) });
 });
 
 app.post('/api/stop', async (req, res) => {
@@ -162,7 +172,7 @@ app.get('/api/active', async (req, res) => {
   if (!active) {
     return res.json({ isFasting: false, startTime: null });
   }
-  res.json({ isFasting: true, startTime: active.start_time });
+  res.json({ isFasting: true, startTime: toISOString(active.start_time) });
 });
 
 app.delete('/api/user', async (req, res) => {

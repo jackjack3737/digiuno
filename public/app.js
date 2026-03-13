@@ -120,8 +120,8 @@ function startTimerFrom(startIsoString) {
   if (!startIsoString) {
     activeStartTime = Date.now();
   } else {
-    const ts = startIsoString.endsWith('Z') ? startIsoString : `${startIsoString}Z`;
-    activeStartTime = Date.parse(ts);
+    const parsed = new Date(startIsoString).getTime();
+    activeStartTime = Number.isFinite(parsed) ? parsed : Date.now();
   }
   if (timerInterval) {
     clearInterval(timerInterval);
