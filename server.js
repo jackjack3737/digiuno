@@ -107,7 +107,8 @@ app.post('/api/start', async (req, res) => {
   if (error) {
     return res.status(500).json({ error: 'Errore avvio digiuno.' });
   }
-  res.json({ success: true, startTime: toISOString(started?.start_time) });
+  const startTime = toISOString(started?.start_time) || new Date().toISOString();
+  res.json({ success: true, startTime });
 });
 
 app.post('/api/stop', async (req, res) => {

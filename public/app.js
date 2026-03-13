@@ -149,6 +149,8 @@ async function handleRegister(e) {
     stopTimer();
     if (user.isFasting && user.startTime) {
       startTimerFrom(user.startTime);
+    } else if (user.isFasting) {
+      startTimerFrom(null);
     }
   } catch (err) {
     userError.textContent = err.message;
@@ -164,13 +166,10 @@ async function handleStart() {
       body: JSON.stringify({ userId: currentUser.id }),
     });
     currentUser.isFasting = true;
+    currentUser.startTime = data.startTime || new Date().toISOString();
     saveUserLocal(currentUser);
     setFastingState(true);
-    if (data.startTime) {
-      startTimerFrom(data.startTime);
-    } else {
-      startTimerFrom(null);
-    }
+    startTimerFrom(data.startTime || null);
     await refreshLeaderboard();
   } catch (err) {
     userError.textContent = err.message;
@@ -186,6 +185,7 @@ async function handleStop() {
       body: JSON.stringify({ userId: currentUser.id }),
     });
     currentUser.isFasting = false;
+    currentUser.startTime = null;
     saveUserLocal(currentUser);
     setFastingState(false);
     stopTimer();
@@ -204,6 +204,7 @@ async function handleCancel() {
       body: JSON.stringify({ userId: currentUser.id }),
     });
     currentUser.isFasting = false;
+    currentUser.startTime = null;
     saveUserLocal(currentUser);
     setFastingState(false);
     stopTimer();
@@ -533,10 +534,15 @@ function initFromLocal() {
     userPanel.classList.remove('hidden');
     setFastingState(saved.isFasting);
     if (saved.isFasting) {
+      if (saved.startTime) {
+        startTimerFrom(saved.startTime);
+      }
       api(`/api/active?userId=${encodeURIComponent(saved.id)}`)
         .then((data) => {
           if (data.isFasting && data.startTime) {
             startTimerFrom(data.startTime);
+            currentUser.startTime = data.startTime;
+            saveUserLocal(currentUser);
           }
         })
         .catch(() => {});
