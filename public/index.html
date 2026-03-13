@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Digiuno Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <div class="hero-brand">
+          <img src="logo-elisir.png" alt="Elisir - Vivere in salute" class="hero-logo" />
+          <div class="hero-text">
+            <h1>ELISIR Digiuno <span class="hero-powered">Powered by Sinelica Digital</span></h1>
+            <p class="hero-sub">Vivere in salute • digiuno consapevole</p>
+            <p class="hero-tagline">Seguimi se vuoi vivere 100 anni in salute</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="card">
+          <h2>Il tuo profilo</h2>
+          <form id="register-form" class="form">
+            <label for="username">Username</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              placeholder="Es. Marco87"
+              required
+              minlength="3"
+            />
+            <button type="submit" class="btn primary">Entra</button>
+          </form>
+
+          <div id="user-panel" class="user-panel hidden">
+            <p class="hello">
+              Ciao, <span id="current-username"></span> 👋
+            </p>
+            <p id="timer-label" class="timer-label">Nessun digiuno attivo</p>
+            <div class="timer-display">
+              <span id="timer-hours">00</span><span class="dots">:</span
+              ><span id="timer-minutes">00</span><span class="dots">:</span
+              ><span id="timer-seconds">00</span>
+            </div>
+            <div class="actions">
+              <button id="start-btn" class="btn success">Avvia digiuno</button>
+              <button id="stop-btn" class="btn danger" disabled>Termina digiuno</button>
+              <button id="cancel-btn" class="btn ghost" disabled>Annulla</button>
+            </div>
+            <div class="account-actions">
+              <button id="delete-user-btn" class="btn ghost small">
+                Elimina il mio username
+              </button>
+              <button id="clear-time-btn" class="btn ghost small">
+                Azzera il mio tempo in classifica
+              </button>
+            </div>
+            <p id="user-error" class="error-message"></p>
+          </div>
+        </section>
+
+        <section class="card leaderboard-card">
+          <div class="leaderboard-header">
+            <h2>Classifica Digiuno</h2>
+            <span id="last-updated" class="last-updated">Aggiornamento...</span>
+          </div>
+          <table class="leaderboard">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Utente</th>
+                <th>Ore di digiuno</th>
+                <th>Stato</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>Sintomi e rimedi nel digiuno</h2>
+          <div class="form">
+            <label for="symptom-search">Cerca un sintomo</label>
+            <input type="text" id="symptom-search" placeholder="Es. mal, testa, nervoso..." autocomplete="off" />
+          </div>
+          <div class="form">
+            <label for="symptom-select">Seleziona un sintomo</label>
+            <select id="symptom-select">
+              <option value="">Scegli un sintomo...</option>
+            </select>
+          </div>
+          <div id="symptom-detail" class="symptom-detail">
+            <p class="helper-text">
+              Dopo aver scelto un sintomo, qui vedrai il rimedio naturale consigliato.
+            </p>
+          </div>
+        </section>
+
+        <section class="card records-card">
+          <h2>Storico digiuni di gruppo (Supabase)</h2>
+          <div class="records-layout">
+            <div class="records-column">
+              <h3>I tuoi digiuni di gruppo</h3>
+              <ul id="my-group-results" class="best-per-user"></ul>
+            </div>
+
+            <div class="records-column">
+              <h3>Record migliori</h3>
+              <div id="best-overall" class="best-overall"></div>
+              <h4>Top 3 di sempre</h4>
+              <ol id="top3-alltime" class="best-per-user"></ol>
+              <h4>I tuoi migliori risultati</h4>
+              <ul id="best-per-user" class="best-per-user"></ul>
+            </div>
+          </div>
+        </section>
+      </main>
+
+    </div>
+
+    <script src="app.js" type="module"></script>
+  </body>
+  </html>
+
