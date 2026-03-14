@@ -219,7 +219,7 @@ app.post('/api/clear-time', async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => {
   const { data: rows, error } = await supabase
     .from('digiuno_leaderboard')
-    .select('id, username, total_hours, is_fasting, created_at')
+    .select('id, username, total_hours, is_fasting, created_at, active_start_time')
     .order('total_hours', { ascending: false })
     .order('created_at', { ascending: true });
 

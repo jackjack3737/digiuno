@@ -26,7 +26,7 @@ INSERT INTO public.leaderboard_reset (id, reset_at) VALUES (1, NULL) ON CONFLICT
 
 -- Vista classifica: conta solo sessioni con start_time >= reset_at (i tempi restano salvati in digiuno_fast_sessions)
 CREATE OR REPLACE VIEW public.digiuno_leaderboard AS
-SELECT t.id, t.username, t.created_at, t.total_hours, t.is_fasting
+SELECT t.id, t.username, t.created_at, t.total_hours, t.is_fasting, t.active_start_time
 FROM (
   SELECT
     u.id,
@@ -43,7 +43,8 @@ FROM (
     EXISTS(
       SELECT 1 FROM public.digiuno_fast_sessions f2
       WHERE f2.user_id = u.id AND f2.end_time IS NULL
-    ) AS is_fasting
+    ) AS is_fasting,
+    (SELECT f3.start_time FROM public.digiuno_fast_sessions f3 WHERE f3.user_id = u.id AND f3.end_time IS NULL LIMIT 1) AS active_start_time
   FROM public.digiuno_users u
 ) t
 WHERE t.total_hours > 0 OR t.is_fasting;

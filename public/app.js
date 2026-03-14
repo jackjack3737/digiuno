@@ -315,20 +315,17 @@ function renderLeaderboard() {
 
     const hoursTd = document.createElement('td');
     let displayHours = row.total_hours;
-    if (
-      row.is_fasting &&
-      elapsedSec > 0 &&
-      (!currentUser || row.username !== currentUser.username)
-    ) {
-      displayHours += elapsedSec / 3600;
-    } else if (
-      row.is_fasting &&
-      currentUser &&
-      row.username === currentUser.username &&
-      activeStartTime
-    ) {
-      const diffSecSelf = Math.max(0, (now - activeStartTime) / 1000);
-      displayHours = diffSecSelf / 3600;
+    if (row.is_fasting) {
+      const startMs = row.active_start_time
+        ? new Date(row.active_start_time).getTime()
+        : currentUser && row.username === currentUser.username
+          ? activeStartTime
+          : null;
+      if (startMs != null && Number.isFinite(startMs)) {
+        displayHours = Math.max(0, (now - startMs) / 1000) / 3600;
+      } else if (elapsedSec > 0) {
+        displayHours += elapsedSec / 3600;
+      }
     }
     hoursTd.textContent = formatDurationFromHours(displayHours);
 
