@@ -38,6 +38,8 @@ let leaderboardRows = [];
 let leaderboardSnapshotTime = null;
 let leaderboardTickInterval = null;
 let isAdmin = false;
+/** Dopo "Termina digiuno", riga classifica restituita dal server (evita 0 per ritardo replica) */
+let stoppedRowOverride = null;
 
 function formatTwoDigits(n) {
   return String(n).padStart(2, '0');
@@ -193,6 +195,7 @@ async function handleStart() {
   if (!currentUser) return;
   userError.textContent = '';
   try {
+    stoppedRowOverride = null;
     const data = await api('/api/start', {
       method: 'POST',
       body: JSON.stringify({ userId: currentUser.id }),
@@ -212,10 +215,11 @@ async function handleStop() {
   if (!currentUser) return;
   userError.textContent = '';
   try {
-    await api('/api/stop', {
+    const res = await api('/api/stop', {
       method: 'POST',
       body: JSON.stringify({ userId: currentUser.id }),
     });
+    if (res.leaderboardRow) stoppedRowOverride = res.leaderboardRow;
     currentUser.isFasting = false;
     currentUser.startTime = null;
     saveUserLocal(currentUser);
@@ -319,7 +323,9 @@ function renderLeaderboard() {
     nameTd.textContent = row.username;
 
     const hoursTd = document.createElement('td');
-    let displayHours = row.total_hours;
+    const isMe = currentUser && (row.id === currentUser.id || row.username === currentUser.username);
+    const effectiveRow = isMe && stoppedRowOverride && (row.total_hours == null || Number(row.total_hours) === 0) ? stoppedRowOverride : row;
+    let displayHours = effectiveRow.total_hours;
     if (row.is_fasting) {
       const startMs = row.active_start_time
         ? new Date(row.active_start_time).getTime()
@@ -374,6 +380,10 @@ async function refreshLeaderboard() {
   try {
     const rows = await api('/api/leaderboard');
     leaderboardRows = rows || [];
+    if (stoppedRowOverride && currentUser) {
+      const myRow = (rows || []).find((r) => r.id === currentUser.id || r.username === currentUser.username);
+      if (myRow && Number(myRow.total_hours) > 0) stoppedRowOverride = null;
+    }
     leaderboardSnapshotTime = Date.now();
     renderLeaderboard();
     startLeaderboardTick();

@@ -133,7 +133,13 @@ app.post('/api/stop', async (req, res) => {
     .update({ end_time: new Date().toISOString() })
     .eq('id', active.id);
 
-  res.json({ success: true });
+  const { data: leaderboardRow } = await supabase
+    .from('digiuno_leaderboard')
+    .select('id, username, total_hours, is_fasting, created_at, active_start_time')
+    .eq('id', userId)
+    .maybeSingle();
+
+  res.json({ success: true, leaderboardRow: leaderboardRow || null });
 });
 
 app.post('/api/cancel', async (req, res) => {
