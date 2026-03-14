@@ -124,9 +124,12 @@ function updateTimer() {
     const seconds = diffSec % 60;
 
     const el = getTimerEls();
-    if (el.hours) el.hours.textContent = formatTwoDigits(hours);
-    if (el.minutes) el.minutes.textContent = formatTwoDigits(minutes);
-    if (el.seconds) el.seconds.textContent = formatTwoDigits(seconds);
+    const h = el.hours || timerHours;
+    const m = el.minutes || timerMinutes;
+    const s = el.seconds || timerSeconds;
+    if (h) h.textContent = formatTwoDigits(hours);
+    if (m) m.textContent = formatTwoDigits(minutes);
+    if (s) s.textContent = formatTwoDigits(seconds);
   } catch (e) {
     console.error('updateTimer', e);
   }
@@ -149,6 +152,7 @@ function startTimerFrom(startIsoString) {
     timerInterval = null;
   }
   updateTimer();
+  setTimeout(updateTimer, 100);
   timerInterval = setInterval(updateTimer, 1000);
 }
 
@@ -393,7 +397,7 @@ async function checkAdmin(username) {
 function updateLeaderboardAdminButton() {
   if (!leaderboardAdminEl) return;
   leaderboardAdminEl.innerHTML = '';
-  if (isAdmin && currentUser) {
+  if (currentUser) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn ghost small';
@@ -405,7 +409,7 @@ function updateLeaderboardAdminButton() {
 }
 
 async function handleResetLeaderboard() {
-  if (!currentUser || !isAdmin) return;
+  if (!currentUser) return;
   const ok = window.confirm(
     'Azzera la classifica per tutti? I tempi restano salvati nel database.'
   );
