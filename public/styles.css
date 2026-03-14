@@ -355,16 +355,28 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.leader.first td {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.06));
+  font-weight: 600;
+}
 .leader.first td:nth-child(1) {
-  color: var(--accent-2);
+  color: #b8860b;
 }
 
+.leader.second td {
+  background: linear-gradient(90deg, rgba(192, 192, 192, 0.25), rgba(192, 192, 192, 0.06));
+  font-weight: 500;
+}
 .leader.second td:nth-child(1) {
-  color: var(--accent-3);
+  color: #808080;
 }
 
+.leader.third td {
+  background: linear-gradient(90deg, rgba(205, 127, 50, 0.2), rgba(205, 127, 50, 0.06));
+  font-weight: 500;
+}
 .leader.third td:nth-child(1) {
-  color: var(--accent);
+  color: #8b6914;
 }
 
 .footer {

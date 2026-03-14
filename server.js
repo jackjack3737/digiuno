@@ -252,17 +252,20 @@ app.post('/api/admin/reset-leaderboard', async (req, res) => {
   }
   try {
     const { error } = await supabase
-      .from('leaderboard_reset')
-      .upsert({ id: 1, reset_at: new Date().toISOString() }, { onConflict: 'id' });
+      .from('digiuno_fast_sessions')
+      .delete()
+      .gte('id', 0);
 
     if (error) {
       console.error(error);
-      return res.status(500).json({ error: 'Errore durante l\'azzeramento.' });
+      return res.status(500).json({
+        error: 'Errore durante l\'eliminazione dei record. Controlla i log Supabase.',
+      });
     }
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Errore interno.' });
+    res.status(500).json({ error: 'Errore interno: ' + (err.message || String(err)) });
   }
 });
 

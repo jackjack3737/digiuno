@@ -414,7 +414,7 @@ async function handleResetLeaderboard() {
     'Azzera la classifica per tutti? I tempi restano salvati nel database.'
   );
   if (!ok) return;
-  userError.textContent = '';
+  if (userError) userError.textContent = '';
   try {
     await api('/api/admin/reset-leaderboard', {
       method: 'POST',
@@ -422,7 +422,9 @@ async function handleResetLeaderboard() {
     });
     await refreshLeaderboard();
   } catch (err) {
-    userError.textContent = err.message || 'Errore azzeramento classifica';
+    const msg = err.message || 'Errore azzeramento classifica';
+    if (userError) userError.textContent = msg;
+    alert(msg);
   }
 }
 
