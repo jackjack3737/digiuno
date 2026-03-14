@@ -91,7 +91,8 @@ function setFastingState(isFasting) {
     startBtn.disabled = false;
     stopBtn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
-    timerLabel.textContent = 'Nessun digiuno attivo';
+    // Stato neutro quando non si è in digiuno
+    timerLabel.textContent = 'Pronto';
     // Non azzerare le cifre: allo Stop il timer si ferma mostrando il tempo raggiunto
   }
 }
@@ -223,13 +224,25 @@ async function handleStop() {
       method: 'POST',
       body: JSON.stringify({ userId: currentUser.id, elapsedSeconds }),
     });
-    if (res.leaderboardRow) stoppedRowOverride = res.leaderboardRow;
+    if (res.leaderboardRow) {
+      stoppedRowOverride = res.leaderboardRow;
+      // Aggiorna subito la classifica locale per evitare che il totale appaia a zero
+      const idx = (leaderboardRows || []).findIndex(
+        (r) => r.id === res.leaderboardRow.id || r.username === res.leaderboardRow.username
+      );
+      if (idx >= 0) {
+        leaderboardRows[idx] = { ...leaderboardRows[idx], ...res.leaderboardRow };
+      } else {
+        leaderboardRows = [...(leaderboardRows || []), res.leaderboardRow];
+      }
+      leaderboardSnapshotTime = Date.now();
+      renderLeaderboard();
+    }
     currentUser.isFasting = false;
     currentUser.startTime = null;
     saveUserLocal(currentUser);
     setFastingState(false);
     stopTimer();
-    await refreshLeaderboard();
   } catch (err) {
     userError.textContent = err.message;
   }
@@ -305,6 +318,24 @@ async function handleClearTime() {
   }
 }
 
+async function handleAdminClearUserTime(targetUserId, targetUsername) {
+  if (!currentUser || !isAdmin) return;
+  const confirmed = window.confirm(
+    `Vuoi eliminare tutti i tempi di ${targetUsername} dalla classifica?`
+  );
+  if (!confirmed) return;
+
+  try {
+    await api('/api/admin/clear-user-time', {
+      method: 'POST',
+      body: JSON.stringify({ username: currentUser.username, targetUserId }),
+    });
+    await refreshLeaderboard();
+  } catch (err) {
+    window.alert(err.message || 'Errore eliminando i tempi di questo utente');
+  }
+}
+
 function renderLeaderboard() {
   leaderboardBody.innerHTML = '';
   if (!leaderboardRows || leaderboardRows.length === 0) {
@@ -345,12 +376,23 @@ function renderLeaderboard() {
     hoursTd.textContent = formatDurationFromHours(displayHours);
 
     const statusTd = document.createElement('td');
-    statusTd.textContent = row.is_fasting ? 'In digiuno' : 'Fermo';
+    statusTd.textContent = row.is_fasting ? 'In digiuno' : 'Pronto';
 
     const actionsTd = document.createElement('td');
     actionsTd.className = 'actions-cell';
 
-    if (currentUser && row.username === currentUser.username) {
+    if (currentUser && isAdmin) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'clear-time-btn';
+      btn.textContent = '×';
+      btn.title = 'Elimina i tempi di questo utente (admin)';
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleAdminClearUserTime(row.id, row.username);
+      });
+      actionsTd.appendChild(btn);
+    } else if (currentUser && (row.id === currentUser.id || row.username === currentUser.username)) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'clear-time-btn';

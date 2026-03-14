@@ -136,18 +136,59 @@ app.post('/api/stop', async (req, res) => {
     endTimeIso = new Date().toISOString();
   }
 
-  await supabase
+  const { error: updateErr } = await supabase
     .from('digiuno_fast_sessions')
     .update({ end_time: endTimeIso })
     .eq('id', active.id);
 
-  const { data: leaderboardRow } = await supabase
-    .from('digiuno_leaderboard')
-    .select('id, username, total_hours, is_fasting, created_at, active_start_time')
-    .eq('id', userId)
-    .maybeSingle();
+  if (updateErr) {
+    console.error(updateErr);
+    return res.status(500).json({ error: 'Errore terminando il digiuno.' });
+  }
 
-  res.json({ success: true, leaderboardRow: leaderboardRow || null });
+  const { data: resetRow } = await supabase
+    .from('leaderboard_reset')
+    .select('reset_at')
+    .eq('id', 1)
+    .maybeSingle();
+  const resetAt = resetRow?.reset_at ? new Date(resetRow.reset_at).getTime() : 0;
+
+  const { data: sessions } = await supabase
+    .from('digiuno_fast_sessions')
+    .select('start_time, end_time')
+    .eq('user_id', userId);
+
+  let totalHours = 0;
+  if (Array.isArray(sessions)) {
+    for (const s of sessions) {
+      const start = new Date(s.start_time).getTime();
+      const end = s.end_time ? new Date(s.end_time).getTime() : Date.now();
+      // Se il digiuno è iniziato prima del reset, conteggia solo la parte dopo resetAt
+      const effectiveStart = Math.max(start, resetAt);
+      if (end > effectiveStart) {
+        totalHours += (end - effectiveStart) / 3600000;
+      }
+    }
+  }
+
+  const { data: userRow } = await supabase
+    .from('digiuno_users')
+    .select('username, created_at')
+    .eq('id', userId)
+    .single();
+
+  const leaderboardRow = userRow
+    ? {
+        id: userId,
+        username: userRow.username,
+        created_at: userRow.created_at,
+        total_hours: totalHours,
+        is_fasting: false,
+        active_start_time: null,
+      }
+    : null;
+
+  res.json({ success: true, leaderboardRow });
 });
 
 app.post('/api/cancel', async (req, res) => {
@@ -280,6 +321,27 @@ app.post('/api/admin/reset-leaderboard', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno: ' + (err.message || String(err)) });
+  }
+});
+
+app.post('/api/admin/clear-user-time', async (req, res) => {
+  const { username, targetUserId } = req.body || {};
+  if (!username || typeof username !== 'string' || !targetUserId) {
+    return res.status(400).json({ error: 'Dati mancanti.' });
+  }
+  if (!ADMIN_USERNAME) {
+    return res.status(503).json({ error: 'Funzione admin non configurata (manca ADMIN_USERNAME).' });
+  }
+  if (username.trim().toLowerCase() !== ADMIN_USERNAME) {
+    return res.status(403).json({ error: 'Solo l\'admin può eliminare i tempi di un utente.' });
+  }
+
+  try {
+    await supabase.from('digiuno_fast_sessions').delete().eq('user_id', targetUserId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore eliminando i tempi di questo utente.' });
   }
 });
 
