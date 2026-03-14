@@ -90,10 +90,7 @@ function setFastingState(isFasting) {
     stopBtn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
     timerLabel.textContent = 'Nessun digiuno attivo';
-    const el = getTimerEls();
-    if (el.hours) el.hours.textContent = '00';
-    if (el.minutes) el.minutes.textContent = '00';
-    if (el.seconds) el.seconds.textContent = '00';
+    // Non azzerare le cifre: allo Stop il timer si ferma mostrando il tempo raggiunto
   }
 }
 
@@ -103,6 +100,13 @@ function stopTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
   }
+}
+
+function resetTimerDisplay() {
+  const el = getTimerEls();
+  if (el.hours) el.hours.textContent = '00';
+  if (el.minutes) el.minutes.textContent = '00';
+  if (el.seconds) el.seconds.textContent = '00';
 }
 
 function getTimerEls() {
@@ -236,6 +240,7 @@ async function handleCancel() {
     saveUserLocal(currentUser);
     setFastingState(false);
     stopTimer();
+    resetTimerDisplay();
     await refreshLeaderboard();
   } catch (err) {
     userError.textContent = err.message;

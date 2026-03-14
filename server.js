@@ -251,15 +251,15 @@ app.post('/api/admin/reset-leaderboard', async (req, res) => {
     return res.status(403).json({ error: 'Solo l\'admin può azzerare la classifica.' });
   }
   try {
+    const resetAt = new Date().toISOString();
     const { error } = await supabase
-      .from('digiuno_fast_sessions')
-      .delete()
-      .gte('id', 0);
+      .from('leaderboard_reset')
+      .upsert({ id: 1, reset_at: resetAt }, { onConflict: 'id' });
 
     if (error) {
       console.error(error);
       return res.status(500).json({
-        error: 'Errore durante l\'eliminazione dei record. Controlla i log Supabase.',
+        error: 'Errore durante l\'azzeramento della classifica. Controlla i log Supabase.',
       });
     }
     res.json({ success: true });
