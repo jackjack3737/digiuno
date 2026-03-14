@@ -112,14 +112,14 @@ app.post('/api/start', async (req, res) => {
 });
 
 app.post('/api/stop', async (req, res) => {
-  const { userId } = req.body || {};
+  const { userId, elapsedSeconds } = req.body || {};
   if (!userId) {
     return res.status(400).json({ error: 'userId mancante.' });
   }
 
   const { data: active } = await supabase
     .from('digiuno_fast_sessions')
-    .select('id')
+    .select('id, start_time')
     .eq('user_id', userId)
     .is('end_time', null)
     .maybeSingle();
@@ -128,9 +128,17 @@ app.post('/api/stop', async (req, res) => {
     return res.status(400).json({ error: 'Nessun digiuno attivo.' });
   }
 
+  let endTimeIso;
+  if (typeof elapsedSeconds === 'number' && elapsedSeconds >= 0 && active.start_time) {
+    const startMs = new Date(active.start_time).getTime();
+    endTimeIso = new Date(startMs + elapsedSeconds * 1000).toISOString();
+  } else {
+    endTimeIso = new Date().toISOString();
+  }
+
   await supabase
     .from('digiuno_fast_sessions')
-    .update({ end_time: new Date().toISOString() })
+    .update({ end_time: endTimeIso })
     .eq('id', active.id);
 
   const { data: leaderboardRow } = await supabase

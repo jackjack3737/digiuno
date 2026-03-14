@@ -215,9 +215,13 @@ async function handleStop() {
   if (!currentUser) return;
   userError.textContent = '';
   try {
+    const elapsedSeconds =
+      activeStartTime != null && Number.isFinite(activeStartTime)
+        ? Math.max(0, Math.floor((Date.now() - activeStartTime) / 1000))
+        : undefined;
     const res = await api('/api/stop', {
       method: 'POST',
-      body: JSON.stringify({ userId: currentUser.id }),
+      body: JSON.stringify({ userId: currentUser.id, elapsedSeconds }),
     });
     if (res.leaderboardRow) stoppedRowOverride = res.leaderboardRow;
     currentUser.isFasting = false;
