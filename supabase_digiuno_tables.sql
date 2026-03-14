@@ -47,7 +47,8 @@ FROM (
     (SELECT f3.start_time FROM public.digiuno_fast_sessions f3 WHERE f3.user_id = u.id AND f3.end_time IS NULL LIMIT 1) AS active_start_time
   FROM public.digiuno_users u
 ) t
-WHERE t.total_hours > 0 OR t.is_fasting;
+WHERE t.total_hours > 0 OR t.is_fasting
+   OR (SELECT COUNT(*) FROM public.digiuno_fast_sessions f WHERE f.user_id = t.id) > 0;
 
 -- Permessi: consenti lettura/scrittura con anon key (per l'app)
 ALTER TABLE public.digiuno_users ENABLE ROW LEVEL SECURITY;
